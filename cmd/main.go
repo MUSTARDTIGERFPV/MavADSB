@@ -62,7 +62,7 @@ var flags flagDef
 func init() {
 	startTime = time.Now()
 	flag.Lookup("alsologtostderr").Value.Set("true")
-	flag.StringVar(&flags.upstream.api_base, "upstream.api_base", "https://api.adsb.one/v2", "ADSB.one API base URL")
+	flag.StringVar(&flags.upstream.api_base, "upstream.api_base", "https://api.adsb.one/v2", "ADSB API base URL")
 	flag.UintVar(&flags.upstream.refresh_interval, "upstream.refresh_interval", 5, "Interval in seconds between API calls")
 	flag.Float64Var(&flags.location.lat, "location.lat", 0.0, "User latitude")
 	flag.Float64Var(&flags.location.lng, "location.lng", 0.0, "User longitude")
