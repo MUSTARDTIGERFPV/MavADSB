@@ -102,20 +102,6 @@ func createMessage(transmissionType int, ac Aircraft) string {
 	return message
 }
 
-func createType4Message(ac Aircraft) string {
-	messageType := "MSG"
-	transmissionType := 4
-	sessionID := 5
-	aircraftID := 0
-
-	message := fmt.Sprintf("%s,%d,%d,%d,%s,%s,%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,,%s,,,0,0,0,0\n",
-		messageType, transmissionType, sessionID, aircraftID, strings.ToUpper(ac.hex), ac.flightID, getDate(),
-		getTime(), getDate(), getTime(), ac.flightID, ac.altitude, ac.gs, ac.track, ac.lat, ac.lon, ac.squawk)
-
-	//fmt.Println(message)
-	return message
-}
-
 func getDate() string {
 	return time.Now().Format("2006/01/02")
 }
