@@ -14,6 +14,7 @@ LINUX_ARMV7=$(EXECUTABLE)_linux_armv7-$(VERSION)
 
 ## Darwin
 DARWIN_AMD64=$(EXECUTABLE)_darwin_amd64-$(VERSION)
+DARWIN_ARM64=$(EXECUTABLE)_darwin_arm64-$(VERSION)
 
 ## BSDs
 FREEBSD_AMD64=$(EXECUTABLE)_freebsd_amd64-$(VERSION)
@@ -42,7 +43,9 @@ linux-amd64: $(LINUX_AMD64)
 linux-arm64: $(LINUX_ARM64)
 linux-armv7: $(LINUX_ARMV7)
 
-darwin: $(DARWIN_AMD64)
+darwin: darwin-amd64 darwin-arm64
+darwin-amd64: $(DARWIN_AMD64)
+darwin-arm64: $(DARWIN_ARM64)
 
 freebsd: $(FREEBSD_AMD64) 
 openbsd: $(OPENBSD_AMD64) 
@@ -58,6 +61,8 @@ $(LINUX_AMD64): $(INPUT_FILES)
 
 $(DARWIN_AMD64): $(INPUT_FILES)
 	env GOOS=darwin GOARCH=amd64 go build -o $@ $(LDFLAGS) $^
+$(DARWIN_ARM64): $(INPUT_FILES)
+	env GOOS=darwin GOARCH=arm64 go build -o $@ $(LDFLAGS) $^
 
 
 $(FREEBSD_AMD64): $(INPUT_FILES)
