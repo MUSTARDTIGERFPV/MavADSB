@@ -10,7 +10,8 @@ import (
 )
 
 type ADSBOneClient struct {
-	server *SBSServer
+	server       *SBSServer
+	lastResponse ADSBOneResponse
 }
 
 func (c *ADSBOneClient) start() {
@@ -42,7 +43,8 @@ func (c *ADSBOneClient) start() {
 		} else {
 			glog.Infof("Completed fetch from the upstream API. Got %d aircraft.\n", len(resp.Ac))
 			knownAircraft.Set(float64(len(resp.Ac)))
-			c.server.sendData(resp)
+			c.lastResponse = resp
+			go c.server.sendData(resp)
 			// Run our next iteration delayed by refresh_interval seconds
 			timer.Reset(time.Duration(flags.upstream.refresh_interval) * time.Second)
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -93,6 +94,16 @@ func main() {
 	}
 	go client.start()
 	glog.Infof("Fetching ADS-B feed from %s\n", flags.upstream.api_base)
+
+	http.HandleFunc("/adsb", func(w http.ResponseWriter, r *http.Request) {
+		b, err := json.Marshal(client.lastResponse)
+		if err != nil {
+			r.Response.StatusCode = http.StatusInternalServerError
+			fmt.Fprintf(w, "%s", err.Error())
+			return
+		}
+		fmt.Fprintf(w, "%s", b)
+	})
 
 	// Serve our HTTP API
 	go func() {
