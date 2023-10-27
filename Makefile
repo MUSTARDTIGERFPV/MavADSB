@@ -4,7 +4,7 @@ HOSTNAME=$(shell hostname)
 TIMESTAMP=$(shell date)
 USER=$(shell id -u -n)
 LDFLAGS=-ldflags='-s -w -X main.COMPILE_VERSION=$(VERSION) -X main.COMPILE_HOSTNAME=$(HOSTNAME) -X "main.COMPILE_TIMESTAMP=$(TIMESTAMP)" -X "main.COMPILE_USER=$(USER)"'
-INPUT_FILES=cmd/main.go cmd/types.go cmd/util.go cmd/server.go cmd/client.go
+INPUT_FILES=cmd/*.go
 
 # Architectures
 ## Linux

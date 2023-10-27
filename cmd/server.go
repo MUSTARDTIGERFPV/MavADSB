@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -24,36 +23,14 @@ type Aircraft struct {
 }
 
 type SBSServer struct {
-	clients []net.Conn
-	mu      sync.Mutex
+	broker *Broker[ADSBOneResponse]
 }
 
-func (s *SBSServer) start(port string) {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
-	if err != nil {
-		fmt.Println("Error starting server:", err)
-		return
-	}
-
-	defer ln.Close()
-
+func clientFunc(conn net.Conn, s *SBSServer) {
+	glog.V(1).Infof("Task starting for %s", conn.RemoteAddr())
+	msgCh := s.broker.Subscribe()
 	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println("Error accepting connection:", err)
-			continue
-		}
-		s.mu.Lock()
-		s.clients = append(s.clients, conn)
-		glog.Infof("Client connected: %s", conn.RemoteAddr())
-		s.mu.Unlock()
-	}
-}
-
-func (s *SBSServer) sendData(data ADSBOneResponse) {
-	connectedClients.Set(float64(len(s.clients)))
-	for i := 0; i < len(s.clients); i++ {
-		conn := s.clients[i]
+		data := <-msgCh
 		writer := bufio.NewWriter(conn)
 		glog.V(1).Infof("Sending to client %s\n", conn.RemoteAddr())
 
@@ -87,14 +64,44 @@ func (s *SBSServer) sendData(data ADSBOneResponse) {
 		err := writer.Flush()
 		if err != nil {
 			glog.Warning(err)
-			s.mu.Lock()
-			glog.Warningf("Removing client %s\n", conn.RemoteAddr())
-			s.clients = removeConn(s.clients, i)
-			s.mu.Unlock()
-			i = i - 1
-			continue
+			s.broker.Unsubscribe(msgCh)
+			break
 		}
 	}
+	glog.Warningf("Task terminating for %s", conn.RemoteAddr())
+}
+
+func (s *SBSServer) start(port string) {
+	s.broker = NewBroker[ADSBOneResponse]()
+	go s.broker.Start()
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	if err != nil {
+		fmt.Println("Error starting server:", err)
+		return
+	}
+
+	defer ln.Close()
+	// Update our connected client metrics
+	go func() {
+		for {
+			connectedClients.Set(float64(s.broker.CountSubcribed()))
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection:", err)
+			continue
+		}
+		glog.Infof("Client connected: %s", conn.RemoteAddr())
+		go clientFunc(conn, s)
+	}
+}
+
+func (s *SBSServer) Publish(r ADSBOneResponse) {
+	s.broker.Publish(r)
 }
 
 func createMessage(transmissionType int, ac Aircraft) string {

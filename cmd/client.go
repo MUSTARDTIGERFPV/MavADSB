@@ -44,7 +44,7 @@ func (c *ADSBOneClient) start() {
 			glog.Infof("Completed fetch from the upstream API. Got %d aircraft.\n", len(resp.Ac))
 			knownAircraft.Set(float64(len(resp.Ac)))
 			c.lastResponse = resp
-			go c.server.sendData(resp)
+			go c.server.Publish(resp)
 			// Run our next iteration delayed by refresh_interval seconds
 			timer.Reset(time.Duration(flags.upstream.refresh_interval) * time.Second)
 		}
