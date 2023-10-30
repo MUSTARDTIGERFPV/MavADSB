@@ -23,48 +23,22 @@ type Aircraft struct {
 }
 
 type SBSServer struct {
-	broker *Broker[ADSBOneResponse]
+	broker *Broker[string]
 }
 
 func clientFunc(conn net.Conn, s *SBSServer) {
-	glog.V(1).Infof("Task starting for %s", conn.RemoteAddr())
+	glog.V(2).Infof("Task starting for %s", conn.RemoteAddr())
 	msgCh := s.broker.Subscribe()
 	for {
 		data := <-msgCh
 		writer := bufio.NewWriter(conn)
-		glog.V(1).Infof("Sending to client %s\n", conn.RemoteAddr())
-
-		for _, ac := range data.Ac {
-			if ac.getAltitude() > 0 {
-				// Convert to intermediate format
-				a := Aircraft{
-					hex:      ac.Hex,
-					flightID: ac.getFlight(),
-					altitude: ac.getAltitude(),
-					lat:      ac.Lat,
-					lon:      ac.Lon,
-					squawk:   ac.Squawk,
-					gs:       ac.Gs,
-					track:    ac.Track,
-					vspeed:   ac.BaroRate,
-				}
-				message := ""
-				// Message type 1 is required to parse callsign
-				message = createMessage(1, a)
-				writer.WriteString(message)
-				// Message type 3 has the bulk of in-flight data
-				message = createMessage(3, a)
-				writer.WriteString(message)
-				// Message type 4 has gs and track
-				message = createMessage(4, a)
-				writer.WriteString(message)
-				updatesSent.Inc()
-			}
-		}
+		glog.V(3).Infof("Sending to client %s\n", conn.RemoteAddr())
+		writer.WriteString(data)
 		err := writer.Flush()
 		if err != nil {
 			glog.Warning(err)
 			s.broker.Unsubscribe(msgCh)
+			conn.Close()
 			break
 		}
 	}
@@ -72,7 +46,7 @@ func clientFunc(conn net.Conn, s *SBSServer) {
 }
 
 func (s *SBSServer) start(port string) {
-	s.broker = NewBroker[ADSBOneResponse]()
+	s.broker = NewBroker[string]()
 	go s.broker.Start()
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
@@ -101,7 +75,32 @@ func (s *SBSServer) start(port string) {
 }
 
 func (s *SBSServer) Publish(r ADSBOneResponse) {
-	s.broker.Publish(r)
+	message := ""
+	for _, ac := range r.Ac {
+		if ac.getAltitude() > 0 {
+			// Convert to intermediate format
+			a := Aircraft{
+				hex:      ac.Hex,
+				flightID: ac.getFlight(),
+				altitude: ac.getAltitude(),
+				lat:      ac.Lat,
+				lon:      ac.Lon,
+				squawk:   ac.Squawk,
+				gs:       ac.Gs,
+				track:    ac.Track,
+				vspeed:   ac.BaroRate,
+			}
+			// Message type 1 is required to parse callsign
+			message += createMessage(1, a)
+			// Message type 3 has the bulk of in-flight data
+			message += createMessage(3, a)
+			// Message type 4 has gs and track
+			message += createMessage(4, a)
+			updatesSent.Inc()
+		}
+	}
+	glog.V(1).Infof("Generated a %d byte payload", len(message))
+	s.broker.Publish(message)
 }
 
 func createMessage(transmissionType int, ac Aircraft) string {
