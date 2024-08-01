@@ -1,5 +1,10 @@
 # MavADSB
 
+> [!IMPORTANT]
+**This functionality is now built into Mission Planner via [this PR](https://github.com/ArduPilot/MissionPlanner/pull/3251). You likely don't need this tool anymore. :)**
+
+## Description
+
 Loads ADSB data into Mission Planner or QGC without a need for an ADSB receiver using public HTTPS APIs.
 This data can be forwarded to the UAS (via telemetry link) for collision avoidance without the need for an onboard ADSB-in receiver or any additional hardware.
 Works natively on Mac, Linux or Windows without runtimes or additional dependencies.
